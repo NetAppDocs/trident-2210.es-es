@@ -1,0 +1,14 @@
+---
+section: trident-reco
+title: Prácticas recomendadas y recomendaciones
+entries:
+- title: Puesta en marcha
+  url: "/trident-reco/deploy-reco.html"
+- title: Configuración del almacenamiento
+  url: "/trident-reco/storage-config-best-practices.html"
+- title: Integración con Astra Trident
+  url: "/trident-reco/integrate-trident.html"
+- title: Protección de datos
+  url: "/trident-reco/backup.html"
+- title: Seguridad
+  url: "/trident-reco/security-reco.html"

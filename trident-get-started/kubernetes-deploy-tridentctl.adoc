@@ -1,0 +1,146 @@
+---
+sidebar: sidebar 
+permalink: trident-get-started/kubernetes-deploy-tridentctl.html 
+keywords: deploy, astra trident, methods, tridentctl, windows 
+summary: 'Puede poner en marcha Astra Trident con `tridentctl`.' 
+---
+= Despliegue con trimentctl
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede poner en marcha Astra Trident con `tridentctl`. Es una buena idea familiarizarse con el link:../trident-concepts/intro.html["conceptos básicos"]. Para personalizar su `tridentctl` despliegue, consulte link:kubernetes-customize-deploy-tridentctl.html["Personalice la implementación trimentctl"].
+
+
+
+== Información crucial sobre Astra Trident 22.10
+
+*Debe leer la siguiente información crítica antes de actualizar a Astra Trident 22.10.*
+
+[WARNING]
+.<strong> información de las Ocampo sobre la Astra Trident 22.10 </strong>
+====
+* Kubernetes 1.25 ahora es compatible con Trident. Debe actualizar a Astra Trident 22.10 antes de actualizar a Kubernetes 1.25.
+* Astra Trident ahora cumple estrictamente el uso de la configuración de varias rutas en entornos SAN, con un valor recomendado de `find_multipaths: no` en el archivo multipath.conf.
++
+Uso de la configuración sin multivía o el uso de `find_multipaths: yes` o. `find_multipaths: smart` el valor del archivo multipath.conf provocará fallos de montaje. Trident ha recomendado el uso de `find_multipaths: no` desde la versión 21.07.
+
+
+
+====
+
+
+== Verifique los requisitos previos
+
+Para poner en marcha Astra Trident, se deben cumplir los siguientes requisitos previos:
+
+* Privilegios completos en un clúster de Kubernetes compatible.
+* Acceso a un sistema de almacenamiento de NetApp compatible.
+* Capacidad para montar volúmenes de todos los nodos de trabajo de Kubernetes.
+* Un host Linux con `kubectl` (o. `oc`, Si está utilizando OpenShift) instalado y configurado para administrar el clúster de Kubernetes que desea utilizar.
+* La `KUBECONFIG` La variable de entorno apunta a la configuración del clúster de Kubernetes.
+* La link:requirements.html["Puertas de funciones requeridas por Astra Trident"] están habilitadas.
+* Si utiliza Kubernetes con Docker Enterprise, https://docs.docker.com/ee/ucp/user-access/cli/["Siga sus pasos para habilitar el acceso a la CLI"^].
+
+
+
+
+== Paso 1: Califique su clúster de Kubernetes
+
+Inicie sesión en el host Linux y compruebe que funciona: link:requirements.html["Clúster de Kubernetes compatible"^] además, tiene los privilegios necesarios.
+
+
+NOTE: Con OpenShift, usted usa `oc` en lugar de `kubectl` en todos los ejemplos que siguen, y debe iniciar sesión como *system:admin* primero ejecutando `oc login -u system:admin` o. `oc login -u kube-admin`.
+
+Para comprobar la versión de Kubernetes, ejecute el siguiente comando:
+
+[listing]
+----
+kubectl version
+----
+Para verificar los privilegios de administrador de clúster de Kubernetes, ejecute el siguiente comando:
+
+[listing]
+----
+kubectl auth can-i '*' '*' --all-namespaces
+----
+Para verificar si puede iniciar un pod que utiliza una imagen desde Docker Hub y llegar al sistema de almacenamiento a través de la red de pod, ejecute el siguiente comando:
+
+[listing]
+----
+kubectl run -i --tty ping --image=busybox --restart=Never --rm -- \
+  ping <management IP>
+----
+Identifique la versión del servidor Kubernetes. Lo utilizará cuando instale Astra Trident.
+
+
+
+== Paso 2: Descargue y extraiga el instalador
+
+
+NOTE: El instalador de Trident crea un pod Trident, configura los objetos CRD que se utilizan para mantener su estado e inicializa los sidecs CSI que realizan acciones, como el aprovisionamiento y la asociación de volúmenes a los hosts del clúster.
+
+Puede descargar y extraer la versión más reciente del paquete de instalación de Trident desde link:https://github.com/NetApp/trident/releases/latest["La sección _Assets_ de GitHub"^].
+
+Por ejemplo, si la última versión es 22.10.0:
+
+[listing]
+----
+wget https://github.com/NetApp/trident/releases/download/v22.10.0/trident-installer-22.10.0.tar.gz
+tar -xf trident-installer-22.10.0.tar.gz
+cd trident-installer
+----
+
+
+== Paso 3: Instalar Astra Trident
+
+Instale Astra Trident en el espacio de nombres deseado ejecutando `tridentctl install` comando.
+
+[listing]
+----
+./tridentctl install -n trident
+....
+INFO Starting Trident installation.                namespace=trident
+INFO Created service account.
+INFO Created cluster role.
+INFO Created cluster role binding.
+INFO Added finalizers to custom resource definitions.
+INFO Created Trident service.
+INFO Created Trident secret.
+INFO Created Trident deployment.
+INFO Created Trident daemonset.
+INFO Waiting for Trident pod to start.
+INFO Trident pod started.                          namespace=trident pod=trident-csi-679648bd45-cv2mx
+INFO Waiting for Trident REST interface.
+INFO Trident REST interface is up.                 version=22.10.0
+INFO Trident installation succeeded.
+....
+----
+
+NOTE: Para habilitar Astra Trident para que se ejecute en los nodos de Windows, añada `--windows` marque el comando install: `$ ./tridentctl install --windows -n trident`.
+
+La salida es similar a la siguiente se muestra cuando el instalador ha finalizado. Según la cantidad de nodos del clúster de Kubernetes, puede haber más pods presentes:
+
+[listing]
+----
+kubectl get pod -n trident
+NAME                           READY   STATUS    RESTARTS   AGE
+trident-csi-679648bd45-cv2mx   4/4     Running   0          5m29s
+trident-csi-vgc8n              2/2     Running   0          5m29s
+
+./tridentctl -n trident version
++----------------+----------------+
+| SERVER VERSION | CLIENT VERSION |
++----------------+----------------+
+| 22.10.0        | 22.10.0        |
++----------------+----------------+
+----
+Para completar la configuración de Astra Trident, vaya a. link:kubernetes-postdeployment.html["tareas posteriores a la implementación"].
+
+Si el instalador no se completa correctamente o. `trident-csi-<generated id>` No tiene un estado *en ejecución*, la plataforma no estaba instalada.
+
+
+NOTE: Para obtener información sobre la solución de problemas durante la implementación, consulte link:../troubleshooting.html["resolución de problemas"].

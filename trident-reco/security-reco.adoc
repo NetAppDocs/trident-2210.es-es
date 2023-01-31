@@ -1,0 +1,154 @@
+---
+sidebar: sidebar 
+permalink: trident-reco/security-reco.html 
+keywords: security, chap, trident, namespace, nve, nae, encryption, volume encryption, aggregate encryption, luks, linux unified key setup, encryption 
+summary: Utilice las recomendaciones que se enumeran aquí para asegurarse de que su instalación de Astra Trident es segura. 
+---
+= Seguridad
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Utilice las recomendaciones que se enumeran aquí para asegurarse de que su instalación de Astra Trident es segura.
+
+
+
+== Ejecute Astra Trident en su propio espacio de nombres
+
+Es importante evitar que las aplicaciones, los administradores de aplicaciones, los usuarios y las aplicaciones de gestión accedan a las definiciones de objetos de Astra Trident o a los pods para garantizar un almacenamiento fiable y bloquear la potencial actividad maliciosa.
+
+Para separar el resto de aplicaciones y usuarios de Astra Trident, instale siempre Astra Trident en su propio espacio de nombres Kubernetes (`trident`). Si coloca Astra Trident en su propio espacio de nombres, solo el personal administrativo de Kubernetes tiene acceso al pod de la Astra Trident y los artefactos (como los secretos CHAP y de back-end, si corresponde) almacenados en los objetos de CRD named. Debe asegurarse de permitir que solo los administradores tengan acceso al espacio de nombres de Astra Trident y, por lo tanto, tengan acceso a `tridentctl` cliente más.
+
+
+
+== Utilice la autenticación CHAP con los back-ends DE SAN de ONTAP
+
+Astra Trident admite la autenticación basada en CHAP para las cargas de trabajo SAN de ONTAP (mediante el `ontap-san` y.. `ontap-san-economy` de windows). NetApp recomienda utilizar CHAP bidireccional con Astra Trident para la autenticación entre un host y el back-end de almacenamiento.
+
+En el caso de los back-ends de ONTAP que utilizan controladores de almacenamiento SAN, Astra Trident puede configurar CHAP bidireccional y gestionar los nombres de usuario y los secretos CHAP a través de `tridentctl`. Consulte link:../trident-use/ontap-san-prep.html["aquí"] Para comprender cómo Astra Trident configura CHAP en los back-ends de ONTAP.
+
+
+NOTE: La compatibilidad CON CHAP para los back-ends de ONTAP está disponible con Trident 20.04 y versiones posteriores.
+
+
+
+== Utilice la autenticación CHAP con NetApp HCI y back-ends de SolidFire
+
+NetApp recomienda poner en marcha CHAP bidireccional para garantizar la autenticación entre un host y los back-ends de NetApp HCI y SolidFire. Astra Trident utiliza un objeto secreto que incluye dos contraseñas CHAP por inquilino. Cuando Trident se instala como aprovisionador CSI, gestiona los secretos CHAP y los almacena en un `tridentvolume` Objeto CR para el PV correspondiente. Cuando se crea un VP, CSI Astra Trident utiliza los secretos CHAP para iniciar una sesión iSCSI y comunicarse con el sistema NetApp HCI y SolidFire a través de CHAP.
+
+
+NOTE: Los volúmenes creados por CSI Trident no están asociados con ningún grupo de acceso de volúmenes.
+
+En el frontend que no sea CSI, Kubernetes gestiona la conexión de volúmenes como dispositivos en los nodos de trabajo. Tras crear un volumen, Astra Trident realiza una llamada API al sistema HCI/SolidFire de NetApp para recuperar los secretos si ese secreto no existe ya. A continuación, Astra Trident pasa los secretos a Kubernetes. La kuelet que se encuentra en cada nodo accede a los secretos a través de la API de Kubernetes y los utiliza para ejecutar y habilitar CHAP entre cada nodo que accede al volumen y el sistema HCI/SolidFire de NetApp donde están ubicados los volúmenes.
+
+
+
+== Utilice Astra Trident con NVE y NAE
+
+ONTAP de NetApp proporciona cifrado de datos en reposo para proteger los datos confidenciales en el caso de robo, devolución o reasignación de un disco. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/configure-netapp-volume-encryption-concept.html["Configure la información general de cifrado de volúmenes de NetApp"^].
+
+* Si NAE está habilitado en el back-end, cualquier volumen aprovisionado en Astra Trident se habilitará para NAE.
+* Si NAE no está habilitado en el back-end, todos los volúmenes aprovisionados en Astra Trident tendrán el cifrado NVE habilitado a menos que establezca el indicador NVE en `false` en la configuración de back-end.
+
+
+[NOTE]
+====
+Los volúmenes que se crean en Astra Trident en un back-end con la NAE habilitada deben ser NVE o NAE cifrados.
+
+* Puede establecer el indicador NVE Encryption como `true` En la configuración del back-end de Trident, con el fin de anular el cifrado NAE y utilizar una clave de cifrado específica por volumen.
+* Establecer la Marca NVE Encryption como `false` En un back-end habilitado para NAE se creará un volumen habilitado para NAE. No puede deshabilitar el cifrado NAE mediante la Marca NVE Encryption a. `false`.
+
+
+====
+* Es posible crear manualmente un volumen NVE en Astra Trident mediante la definición explícita de la Marca NVE a. `true`.
+
+
+Para obtener más información sobre las opciones de configuración del back-end, consulte:
+
+* link:../trident-use/ontap-san-examples.html["Opciones de configuración DE SAN de ONTAP"]
+* link:../trident-use/ontap-nas-examples.html["Opciones de configuración de NAS de ONTAP"]
+
+
+
+
+== Habilitar el cifrado por volumen en el lado del host mediante Unified Key Setup (LUKS) de Linux
+
+Puede habilitar Unified Key Setup (LUKS) de Linux para cifrar los volúmenes DE ECONOMÍA SAN de ONTAP y SAN DE ONTAP en Astra Trident. En Astra Trident, los volúmenes cifrados por LUKS utilizan el cifer y el modo AES-xts-Capellanía, como recomienda link:https://csrc.nist.gov/publications/detail/sp/800-38e/final["NIST"^].
+
+Para obtener más información sobre las opciones de configuración del back-end para SAN de ONTAP, consulte link:../trident-use/ontap-san-examples.html["Opciones de configuración DE SAN de ONTAP"]
+
+.Antes de empezar
+* Los nodos de trabajo deben tener instalado cryptsetup 2.1 o superior. Si desea más información, visite link:https://gitlab.com/cryptsetup/cryptsetup["Gitlab: Cryptsetup"^].
+* Por motivos de rendimiento, recomendamos que los nodos de trabajo admitan las nuevas instrucciones estándar de cifrado avanzado (AES-ni). Para verificar el soporte de AES-ni, ejecute el siguiente comando:
++
+[listing]
+----
+grep "aes" /proc/cpuinfo
+----
++
+Si no se devuelve nada, su procesador no admite AES-ni. Para obtener más información sobre AES-ni, visite: link:https://www.intel.com/content/www/us/en/developer/articles/technical/advanced-encryption-standard-instructions-aes-ni.html["Intel: Instrucciones estándar de cifrado avanzado (AES-ni)"^].
+
+
+
+.Pasos
+. Defina los atributos de cifrado LUKS en la configuración de backend.
++
+[listing]
+----
+"storage": [
+    {
+        "labels":{"luks": "true"},
+        "zone":"us_east_1a",
+        "defaults": {
+            "luksEncryption": "true"
+        }
+    },
+    {
+        "labels":{"luks": "false"},
+        "zone":"us_east_1a",
+        "defaults": {
+            "luksEncryption": "false"
+        }
+    },
+]
+----
+. Uso `parameters.selector` Para definir los pools de almacenamiento mediante el cifrado LUKS. Por ejemplo:
++
+[listing]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: luks
+provisioner: netapp.io/trident
+parameters:
+  selector: "luks=true"
+  csi.storage.k8s.io/node-stage-secret-name: luks-${pvc.name}
+  csi.storage.k8s.io/node-stage-secret-namespace: ${pvc.namespace}
+----
+. Cree un secreto que contenga la frase de paso LUKS. Por ejemplo:
++
+[listing]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: luks-pvc1
+stringData:
+  luks-passphrase-name: B
+  luks-passphrase: secretB
+  previous-luks-passphrase-name: A
+  previous-luks-passphrase: secretA
+----
+
+
+
+
+=== Limitaciones
+
+* LOS volúmenes cifrados LUKS no podrán aprovechar la deduplicación y la compresión de ONTAP.
+* LA rotación DE la frase DE paso LUKS no es compatible en este momento. Para cambiar las passphrases, copie manualmente los datos de un PVC a otro.
+

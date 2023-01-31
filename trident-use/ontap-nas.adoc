@@ -1,0 +1,32 @@
+---
+sidebar: sidebar 
+permalink: trident-use/ontap-nas.html 
+keywords: trident backend, ontap nas, ontap-nas, ontap-nas-economy, ontap-nas-flexgroups, fsx 
+summary: Obtenga más información sobre la configuración de un back-end de ONTAP con controladores NAS de ONTAP. 
+---
+= Configure un back-end NAS de ONTAP
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+Obtenga información sobre la configuración de un back-end de ONTAP con controladores NAS de ONTAP y Cloud Volumes ONTAP.
+
+* link:ontap-nas-prep.html["Preparación"]
+* link:ontap-nas-examples.html["Configuración y ejemplos"]
+
+
+
+WARNING: Los clientes deben utilizar la `ontap-nas` ser el motor de cargas de trabajo de producción que requieren protección de datos, recuperación ante desastres y movilidad. Astra Control proporciona protección, recuperación ante desastres y movilidad fluidas para los volúmenes que se crean con `ontap-nas` controlador. La `ontap-nas-economy` El controlador se debe utilizar solo en casos de uso limitados en los que se espera que el uso previsto de un volumen sea mucho superior al compatible con ONTAP, sin requisitos anticipados de protección de datos, recuperación tras desastres o movilidad (trasladando volúmenes entre clústeres de Kubernetes).
+
+
+
+== Permisos de usuario
+
+Astra Trident espera que se ejecute como administrador de ONTAP o SVM, normalmente mediante el `admin` usuario del clúster o un `vsadmin` Usuario de SVM o un usuario con un nombre diferente que tenga el mismo rol. Para puestas en marcha de Amazon FSX para ONTAP de NetApp, Astra Trident espera que se ejecute como administrador de ONTAP o SVM, mediante el clúster `fsxadmin` usuario o un `vsadmin` Usuario de SVM o un usuario con un nombre diferente que tenga el mismo rol. La `fsxadmin` el usuario es un reemplazo limitado para el usuario administrador del clúster.
+
+
+NOTE: Si utiliza la `limitAggregateUsage` parámetro, se necesitan permisos de administrador de clúster. Cuando se utiliza Amazon FSX para ONTAP de NetApp con Astra Trident, el `limitAggregateUsage` el parámetro no funciona con el `vsadmin` y.. `fsxadmin` cuentas de usuario. La operación de configuración generará un error si se especifica este parámetro.
+
+Si bien es posible crear una función más restrictiva dentro de ONTAP que pueda utilizar un controlador Trident, no lo recomendamos. La mayoría de las nuevas versiones de Trident denominan API adicionales que se tendrían que tener en cuenta, por lo que las actualizaciones son complejas y propensas a errores.
